@@ -2,7 +2,7 @@
     <div id="goods">
         <div class="businessLeft">
             <ul class="content">
-                <div v-for="(obj,i) in data" :key="obj.name" @click="leftCheck(i)"
+                <div v-for="(obj,i) in foodsList" :key="obj.name" @click="leftCheck(i)"
                     :class="{selected:index==i?true:false}">
                     <p>
                         <img src="../assets/imgs/discount_1@2x.png" v-show="obj.type==1">
@@ -17,24 +17,23 @@
         </div>
         <div class="rightContent">
             <ul class="content">
-                <div v-for="(obj,i) in data" :key="obj.name" :id="i">
+                <div v-for="(obj,i) in foodsList" :key="obj.name" :id="i">
                     <h2 class="title">{{ obj.name }}</h2>
                     <div v-for="obj1 in obj.foods" :key="obj1.name" class="goods">
-                        <div><img :src='obj1.image'></div>
-                        <div>
+                        <div class="goodsImg"><img :src='obj1.image'></div>
+                        <div class="goodsContent">
                             <h3>
                                 {{obj1.name}}
                             </h3>
                             <p>{{obj1.description}}</p>
-                            <p>月销售 {{obj1.sellCount}}份 好评率 {{obj1.rating}}%</p>
-                            <p><span>{{obj1.price}}</span> <span>{{obj1.oldPrice}}</span></p>
+                            <p>月销售 {{obj1.sellCount}}份</p>
+                            <p>好评率 {{obj1.rating}}%</p>
+                            <p><span class="price">￥{{obj1.price}}</span> <span><del>{{obj1.oldPrice}}</del></span></p>
                         </div>
-                        <div>
-                            <p>
-                                <Icon type="minus-circled"></Icon>
-                                <span>1</span>
-                                <Icon type="plus-circled"></Icon>
-                            </p>
+                        <div class="goodsAdd">
+                            <span class="minus" v-show="obj1.num>0" @click="add(-1,obj1.name)">-</span>
+                            <span class="num" v-show="obj1.num>0">{{obj1.num}}</span>
+                            <span class="add" @click="add(1,obj1.name)">+</span>
                         </div>
                     </div>
                 </div>
@@ -52,38 +51,67 @@
     export default {
         data() {
             return {
-                data: {},
                 index: 0,
             };
         },
         created() {
-            var that = this;
             getGoods().then(data => {
-                that.data = data.data.data;
-                // console.log(that.data);
+                this.$store.commit("getList", data.data.data);
+                this.$store.commit("getShopCarList",this.$store.getters.shopCar)
+                // console.log(this.$store.state.list)
             });
         },
         mounted() {
             /* 左边滚动 */
-            new BScroll(document.querySelector(".businessLeft"), {
+            this.left = new BScroll(document.querySelector(".businessLeft"), {
                 click: true,
             })
-
             /* 右边滚动 */
             this.right = new BScroll(document.querySelector(".rightContent"), {
                 click: true,
+                probeType: 3,
+            })
+            this.right.on("scroll", (o) => {
+                for (let i = 0; i < this.getHight.length; i++) {
+                    if (this.getHight[i].min < Math.abs(o.y) && Math.abs(o.y) < this.getHight[i].max) {
+                        this.index = i;
+                    }
+                }
             })
         },
         methods: {
             leftCheck(i) {
                 this.index = i
-                this.right.scrollToElement(document.getElementById(this.index), 1000)
+                this.right.scrollToElement(document.getElementById(this.index), 300)
+            },
+            add(num,name){
+                this.$store.commit("addNum",{num,name});
+                this.$store.commit("getShopCarList",this.$store.getters.shopCar)
+            }
+        },
+        computed: {
+            getHight() {
+                var arr = []
+                var allHeight = 0;
+                for (let i = 0; i < this.foodsList.length; i++) {
+                    var nowHeight = allHeight;
+                    allHeight += document.getElementById(i).offsetHeight;
+                    arr.push({
+                        min: nowHeight - 1,
+                        max: allHeight,
+                        index: i
+                    })
+                }
+                return arr
+            },
+            foodsList() {
+                return this.$store.state.list
             },
         }
     };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
     #goods {
         height: 100%;
 
@@ -119,7 +147,7 @@
 
             .space {
                 width: 100%;
-                height: 225px;
+                height: 235px;
             }
         }
 
@@ -131,6 +159,7 @@
             overflow: auto;
 
             .title {
+                border-left: 2px solid #D9DCE1;
                 background: #f4f5f7;
                 text-align: left;
                 padding-left: 15px;
@@ -140,12 +169,54 @@
             div {
                 width: 100%;
 
-                img {
-                    width: 80px;
-                }
-
                 .goods {
+                    padding: 10px 5px;
+                    border-bottom: 1px solid #DBDEE1;
                     display: flex;
+                    justify-content: space-around;
+                    align-items: flex-start;
+
+                    .goodsImg {
+                        padding-right: 10px;
+
+                        img {
+                            width: 80px;
+                        }
+                    }
+
+                    .goodsContent {
+                        font-size: 10px;
+
+                        .price {
+                            color: red;
+                            font-size: 14px;
+                        }
+                    }
+
+                    .goodsAdd {
+                        width: 150px;
+                        padding-right: 10px;
+                        align-self: flex-end;
+                        display: flex;
+                        justify-content: flex-end;
+
+                        span {
+                            display: block;
+                            width: 20px;
+                            height: 20px;
+                            line-height: 20px;
+                            text-align: center;
+                            // align-self:center;
+                        }
+
+                        .add,
+                        .minus {
+                            line-height: 15px;
+                            border: 2px solid #000;
+                            border-radius: 50%;
+                            font-size: 20px;
+                        }
+                    }
                 }
             }
 
