@@ -13,7 +13,9 @@
                             {{ obj.name}}
                         </div>
                         <div class="foodsPrice">
-                            ￥{{ $store.getters.allPrice }}
+                            ￥{{
+                              obj.num*obj.price
+                             }}
                         </div>
                         <div class="foodsAdd">
                             <span class="minus" v-show="obj.num>0" @click="add(-1,obj.name)">-</span>
